@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy $MEFC Tokens | Meme Fight Club</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes twinkle {
+            from { opacity: 0.3; }
+            to { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(45deg, #ff6b35, #f7931e, #ffd700);
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #000;
+            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3); }
+            to { box-shadow: 0 15px 40px rgba(255, 107, 53, 0.6); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b35, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .rate {
+            font-size: 1.1rem;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .purchase-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .wallet-status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-disconnected {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff4444;
+            color: #ff6666;
+        }
+
+        .wallet-connected {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #44ff44;
+            color: #66ff66;
+        }
+
+        .connect-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(45deg, #00ff00, #32cd32);
+            color: #000;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0, 255, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 255, 0, 0.4);
+        }
+
+        .connect-btn:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .calculation {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .buy-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+        }
+
+        .buy-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 53, 0.6);
+        }
+
+        .buy-btn:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 1s ease-out 0.6s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .back-link {
+            color: #ffd700;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #00ff00;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #00ff00;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #44ff44;
+            color: #66ff66;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            display: none;
+        }
+
+        .error-message {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff4444;
+            color: #ff6666;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .purchase-card {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="logo">🥊</div>
+            <h1>Buy $MEFC Tokens</h1>
+            <div class="subtitle">Meme Fight Club Battle Royale</div>
+            <div class="rate">1 SUI = 6,000 MEFC</div>
+        </div>
+
+        <div class="purchase-card">
+            <div id="walletStatus" class="wallet-status wallet-disconnected">
+                🔒 Wallet Not Connected
+            </div>
+
+            <button id="connectBtn" class="connect-btn">
+                Connect Sui Wallet
+            </button>
+
+            <div class="input-group">
+                <label for="suiAmount">SUI Amount:</label>
+                <input type="number" id="suiAmount" placeholder="Enter SUI amount" step="0.001" min="0.001">
+            </div>
+
+            <div class="calculation" id="calculation">
+                Enter SUI amount to see MEFC tokens you'll receive
+            </div>
+
+            <button id="buyBtn" class="buy-btn" disabled>
+                Buy MEFC Tokens
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing transaction...</p>
+            </div>
+
+            <div class="success-message" id="successMessage">
+                ✅ Transaction successful! Your MEFC tokens will appear in your wallet shortly.
+            </div>
+
+            <div class="error-message" id="errorMessage">
+                ❌ Transaction failed. Please try again.
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="#" class="back-link" onclick="history.back()">← Back to Meme Fight Club</a>
+            <p style="margin-top: 10px; opacity: 0.6; font-size: 0.9rem;">
+                Powered by Sui Blockchain
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Create animated stars background
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Wallet connection variables
+        let connectedWallet = null;
+        let walletProvider = null;
+
+        // DOM elements
+        const connectBtn = document.getElementById('connectBtn');
+        const buyBtn = document.getElementById('buyBtn');
+        const walletStatus = document.getElementById('walletStatus');
+        const suiAmountInput = document.getElementById('suiAmount');
+        const calculation = document.getElementById('calculation');
+        const loading = document.getElementById('loading');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Exchange rate
+        const MEFC_PER_SUI = 6000;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            checkWalletAvailability();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            connectBtn.addEventListener('click', connectWallet);
+            buyBtn.addEventListener('click', buyTokens);
+            suiAmountInput.addEventListener('input', updateCalculation);
+        }
+
+        function checkWalletAvailability() {
+            // Check for various Sui wallet providers
+            setTimeout(() => {
+                if (window.suiWallet || window.sui || window.slush || window.suiet) {
+                    walletProvider = window.suiWallet || window.sui || window.slush || window.suiet;
+                    connectBtn.textContent = 'Connect Sui Wallet';
+                    connectBtn.disabled = false;
+                } else {
+                    connectBtn.textContent = 'No Sui Wallet Detected';
+                    connectBtn.disabled = true;
+                    showError('Please install a Sui wallet (Sui Wallet, Slush, or Suiet) to continue.');
+                }
+            }, 1000);
+        }
+
+        async function connectWallet() {
+            try {
+                showLoading(true);
+                hideMessages();
+
+                // Try different connection methods
+                let accounts = null;
+                
+                if (walletProvider && walletProvider.connect) {
+                    accounts = await walletProvider.connect();
+                } else if (walletProvider && walletProvider.requestPermissions) {
+                    await walletProvider.requestPermissions();
+                    accounts = await walletProvider.getAccounts();
+                }
+
+                if (accounts && accounts.length > 0) {
+                    connectedWallet = accounts[0];
+                    updateWalletStatus(true);
+                    buyBtn.disabled = false;
+                    showSuccess('Wallet connected successfully!');
+                } else {
+                    throw new Error('No accounts found');
+                }
+            } catch (error) {
+                console.error('Wallet connection error:', error);
+                showError('Failed to connect wallet: ' + error.message);
+                updateWalletStatus(false);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function updateWalletStatus(connected) {
+            if (connected && connectedWallet) {
+                walletStatus.className = 'wallet-status wallet-connected';
+                walletStatus.innerHTML = `🔓 Connected: ${connectedWallet.address ? 
+                    connectedWallet.address.substring(0, 8) + '...' : 
+                    'Wallet Connected'}`;
+                connectBtn.textContent = 'Disconnect';
+                connectBtn.onclick = disconnectWallet;
+            } else {
+                walletStatus.className = 'wallet-status wallet-disconnected';
+                walletStatus.innerHTML = '🔒 Wallet Not Connected';
+                connectBtn.textContent = 'Connect Sui Wallet';
+                connectBtn.onclick = connectWallet;
+                buyBtn.disabled = true;
+                connectedWallet = null;
+            }
+        }
+
+        function disconnectWallet() {
+            if (walletProvider && walletProvider.disconnect) {
+                walletProvider.disconnect();
+            }
+            updateWalletStatus(false);
+            showSuccess('Wallet disconnected');
+        }
+
+        function updateCalculation() {
+            const suiAmount = parseFloat(suiAmountInput.value) || 0;
+            if (suiAmount > 0) {
+                const mefcAmount = suiAmount * MEFC_PER_SUI;
+                calculation.innerHTML = `
+                    <strong>${suiAmount} SUI</strong> = <strong>${mefcAmount.toLocaleString()} MEFC</strong>
+                `;
+                buyBtn.disabled = !connectedWallet;
+            } else {
+                calculation.innerHTML = 'Enter SUI amount to see MEFC tokens you\'ll receive';
+                buyBtn.disabled = true;
+            }
+        }
+
+        async function buyTokens() {
+            const suiAmount = parseFloat(suiAmountInput.value);
+            
+            if (!suiAmount || suiAmount <= 0) {
+                showError('Please enter a valid SUI amount');
+                return;
+            }
+
+            if (!connectedWallet) {
+                showError('Please connect your wallet first');
+                return;
+            }
+
+            try {
+                showLoading(true);
+                hideMessages();
+                buyBtn.disabled = true;
+
+                // Convert SUI to smallest unit (MIST)
+                const suiInMist = Math.floor(suiAmount * 1000000000);
+
+                // This is a placeholder transaction - you'll need to replace this
+                // with your actual smart contract interaction
+                const transaction = {
+                    kind: 'moveCall',
+                    data: {
+                        packageObjectId: 'YOUR_PACKAGE_ID', // Replace with your package ID
+                        module: 'mefc_token',
+                        function: 'buy_tokens',
+                        arguments: [suiInMist],
+                        gasBudget: 10000,
+                    }
+                };
+
+                // Execute transaction
+                let result;
+                if (walletProvider.signAndExecuteTransaction) {
+                    result = await walletProvider.signAndExecuteTransaction(transaction);
+                } else {
+                    throw new Error('Wallet does not support transaction signing');
+                }
+
+                if (result && result.digest) {
+                    showSuccess(`Transaction successful! TX: ${result.digest}`);
+                    suiAmountInput.value = '';
+                    updateCalculation();
+                } else {
+                    throw new Error('Transaction failed');
+                }
+
+            } catch (error) {
+                console.error('Transaction error:', error);
+                showError('Transaction failed: ' + error.message);
+            } finally {
+                showLoading(false);
+                buyBtn.disabled = false;
+            }
+        }
+
+        function showLoading(show) {
+            loading.style.display = show ? 'block' : 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function hideMessages() {
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
