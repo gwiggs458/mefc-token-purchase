@@ -66,9 +66,9 @@
         <h2>Buy $MEFC</h2>
         <p>1 SUI = 6,000 MEFC</p>
         <button id="connectWallet">Connect Wallet</button>
-        <input id="suiAmount" type="number" placeholder="Enter SUI amount" disabled />
+        <input id="suiAmount" type="number" placeholder="Enter SUI amount" />
         <div id="mefcCalculation" class="mefc-calculation">You will receive: 0 MEFC</div>
-        <button id="buyBtn" disabled>Buy Now</button>
+        <button id="buyBtn">Buy Now</button>
         <p id="mefcResult"></p>
         <small>
             Token:
@@ -80,7 +80,8 @@
     </div>
 
     <script type="module">
-        import { SuiClient, getFullnodeUrl, TransactionBlock } from "https://unpkg.com/@mysten/sui.js/dist/esm/index.js";
+        // Import Sui libraries
+        const { SuiClient, getFullnodeUrl, TransactionBlock } = await import("https://unpkg.com/@mysten/sui.js/dist/esm/index.js");
 
         const client = new SuiClient({ url: getFullnodeUrl("mainnet") });
         const MIST = 1_000_000_000;
@@ -88,6 +89,7 @@
         let wallet = null;
         let account = null;
 
+        // MEFC calculation function
         function updateMEFCCalculation() {
             const suiAmount = parseFloat(document.getElementById("suiAmount").value) || 0;
             const mefcAmount = suiAmount * 6000;
@@ -101,45 +103,51 @@
             }
         }
 
-        document.getElementById("connectWallet").addEventListener("click", async () => {
+        // Check for available wallets
+        function getAvailableWallet() {
+            if (window.suiWallet) return window.suiWallet;
+            if (window.suiet) return window.suiet;
+            if (window.martianWallet) return window.martianWallet;
+            return null;
+        }
+
+        // Connect wallet function
+        async function connectWallet() {
             const resultField = document.getElementById("mefcResult");
+            const availableWallet = getAvailableWallet();
             
-            if (!window.suiWallet) {
-                resultField.innerText = "Please install Sui Wallet extension first.";
+            if (!availableWallet) {
+                resultField.innerText = "Please install a Sui wallet extension (Sui Wallet, Suiet, or Martian)";
                 return;
             }
 
             try {
                 resultField.innerText = "Connecting to wallet...";
-                await window.suiWallet.connect();
-                const accounts = await window.suiWallet.getAccounts();
-                wallet = window.suiWallet;
+                await availableWallet.connect();
+                const accounts = await availableWallet.getAccounts();
+                wallet = availableWallet;
                 account = accounts[0];
                 
                 document.getElementById("connectWallet").innerText = "Connected: " + account.slice(0, 6) + "...";
-                document.getElementById("connectWallet").disabled = true;
-                document.getElementById("suiAmount").disabled = false;
-                document.getElementById("buyBtn").disabled = false;
-                resultField.innerText = "Wallet connected! Enter SUI amount.";
+                resultField.innerText = "Wallet connected! You can now make purchases.";
             } catch (err) {
                 console.error("Wallet connect error:", err);
                 resultField.innerText = "Connection failed: " + err.message;
             }
-        });
+        }
 
-        document.getElementById("suiAmount").addEventListener("input", updateMEFCCalculation);
-
-        document.getElementById("buyBtn").addEventListener("click", async () => {
+        // Buy MEFC function
+        async function buyMEFC() {
             const suiAmount = parseFloat(document.getElementById("suiAmount").value);
             const resultField = document.getElementById("mefcResult");
 
-            if (!wallet || !account) {
-                resultField.innerText = "Please connect your wallet first.";
+            if (!suiAmount || suiAmount <= 0) {
+                resultField.innerText = "Please enter a valid SUI amount.";
                 return;
             }
 
-            if (!suiAmount || suiAmount <= 0) {
-                resultField.innerText = "Please enter a valid SUI amount.";
+            if (!wallet || !account) {
+                resultField.innerText = "Please connect your wallet first.";
                 return;
             }
 
@@ -153,7 +161,7 @@
                     tx.pure(RECEIVER)
                 );
 
-                const result = await window.suiWallet.signAndExecuteTransactionBlock({
+                const result = await wallet.signAndExecuteTransactionBlock({
                     transactionBlock: tx,
                     options: { showEffects: true }
                 });
@@ -171,9 +179,12 @@
                 console.error("TX error:", err);
                 resultField.innerText = "Transaction error: " + err.message;
             }
-        });
+        }
 
-        console.log("MEFC Widget loaded on GitHub Pages");
+        // Event listeners
+        document.getElementById("connectWallet").addEventListener("click", connectWallet);
+        document.getElementById("suiAmount").addEventListener("input", updateMEFCCalculation);
+        document.getElementById("buyBtn").addEventListener("click", buyMEFC);
     </script>
 </body>
 </html>
