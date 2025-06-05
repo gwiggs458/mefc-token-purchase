@@ -40,6 +40,11 @@
             color: #ccc;
             cursor: not-allowed;
         }
+        .mefc-sale-widget button:hover {
+            background: #00ff00;
+            transform: scale(1.02);
+            transition: all 0.2s;
+        }
         .mefc-sale-widget input {
             background: #333;
             color: #fff;
@@ -59,17 +64,23 @@
             color: #0f0;
             display: none;
         }
+        .status-indicator {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
     <div class="mefc-sale-widget">
         <h2>Buy $MEFC</h2>
         <p>1 SUI = 6,000 MEFC</p>
-        <button id="connectWallet">Connect Wallet</button>
-        <input id="suiAmount" type="number" placeholder="Enter SUI amount" />
+        <button id="connectWallet" onclick="handleConnectWallet()">Connect Wallet</button>
+        <input id="suiAmount" type="number" placeholder="Enter SUI amount" oninput="handleInputChange()" />
         <div id="mefcCalculation" class="mefc-calculation">You will receive: 0 MEFC</div>
-        <button id="buyBtn">Buy Now</button>
+        <button id="buyBtn" onclick="handleBuyMEFC()">Buy Now</button>
         <p id="mefcResult"></p>
+        <div id="statusIndicator" class="status-indicator">Loading...</div>
         <small>
             Token:
             <a href="https://suivision.xyz/coin/0xc44a14f76b8defe396f91b34dbeb8904928bce4084f52eb49cd3b2ca489c4ae6::mefc::MEFC" 
@@ -79,18 +90,22 @@
         </small>
     </div>
 
-    <script type="module">
-        // Import Sui libraries
-        const { SuiClient, getFullnodeUrl, TransactionBlock } = await import("https://unpkg.com/@mysten/sui.js/dist/esm/index.js");
-
-        const client = new SuiClient({ url: getFullnodeUrl("mainnet") });
-        const MIST = 1_000_000_000;
-        const RECEIVER = "0x2f68e30da13bf7a9261d8c2ee55cffdf70d072732ae336f37ea411c0c2f653e9";
+    <script>
+        // Global variables
+        let SuiClient, getFullnodeUrl, TransactionBlock;
+        let client = null;
         let wallet = null;
         let account = null;
+        const MIST = 1_000_000_000;
+        const RECEIVER = "0x2f68e30da13bf7a9261d8c2ee55cffdf70d072732ae336f37ea411c0c2f653e9";
+
+        // Status indicator
+        function setStatus(message) {
+            document.getElementById("statusIndicator").innerText = message;
+        }
 
         // MEFC calculation function
-        function updateMEFCCalculation() {
+        function handleInputChange() {
             const suiAmount = parseFloat(document.getElementById("suiAmount").value) || 0;
             const mefcAmount = suiAmount * 6000;
             const calcDiv = document.getElementById("mefcCalculation");
@@ -105,19 +120,25 @@
 
         // Check for available wallets
         function getAvailableWallet() {
-            if (window.suiWallet) return window.suiWallet;
-            if (window.suiet) return window.suiet;
-            if (window.martianWallet) return window.martianWallet;
+            if (typeof window !== 'undefined') {
+                if (window.suiWallet) return window.suiWallet;
+                if (window.suiet) return window.suiet;
+                if (window.martianWallet) return window.martianWallet;
+            }
             return null;
         }
 
         // Connect wallet function
-        async function connectWallet() {
+        async function handleConnectWallet() {
             const resultField = document.getElementById("mefcResult");
             const availableWallet = getAvailableWallet();
             
+            setStatus("Attempting wallet connection...");
+            
             if (!availableWallet) {
-                resultField.innerText = "Please install a Sui wallet extension (Sui Wallet, Suiet, or Martian)";
+                const message = "Please install a Sui wallet extension (Sui Wallet, Suiet, or Martian)";
+                resultField.innerText = message;
+                setStatus("No wallet detected");
                 return;
             }
 
@@ -130,24 +151,36 @@
                 
                 document.getElementById("connectWallet").innerText = "Connected: " + account.slice(0, 6) + "...";
                 resultField.innerText = "Wallet connected! You can now make purchases.";
+                setStatus("Wallet connected successfully");
             } catch (err) {
                 console.error("Wallet connect error:", err);
                 resultField.innerText = "Connection failed: " + err.message;
+                setStatus("Connection failed");
             }
         }
 
         // Buy MEFC function
-        async function buyMEFC() {
+        async function handleBuyMEFC() {
             const suiAmount = parseFloat(document.getElementById("suiAmount").value);
             const resultField = document.getElementById("mefcResult");
 
+            setStatus("Processing purchase...");
+
             if (!suiAmount || suiAmount <= 0) {
                 resultField.innerText = "Please enter a valid SUI amount.";
+                setStatus("Invalid amount");
                 return;
             }
 
             if (!wallet || !account) {
                 resultField.innerText = "Please connect your wallet first.";
+                setStatus("Wallet not connected");
+                return;
+            }
+
+            if (!TransactionBlock) {
+                resultField.innerText = "Transaction system not loaded. Please refresh the page.";
+                setStatus("System not ready");
                 return;
             }
 
@@ -169,22 +202,73 @@
                 if (result?.effects?.status?.status === "success") {
                     const mefcAmount = suiAmount * 6000;
                     resultField.innerText = `Success! You will receive ${mefcAmount.toLocaleString()} MEFC tokens within 1 hour.`;
+                    setStatus("Transaction successful");
                     
                     document.getElementById("suiAmount").value = '';
-                    updateMEFCCalculation();
+                    handleInputChange();
                 } else {
                     resultField.innerText = "Transaction failed.";
+                    setStatus("Transaction failed");
                 }
             } catch (err) {
                 console.error("TX error:", err);
                 resultField.innerText = "Transaction error: " + err.message;
+                setStatus("Transaction error");
             }
         }
 
-        // Event listeners
-        document.getElementById("connectWallet").addEventListener("click", connectWallet);
-        document.getElementById("suiAmount").addEventListener("input", updateMEFCCalculation);
-        document.getElementById("buyBtn").addEventListener("click", buyMEFC);
+        // Initialize the widget
+        async function initWidget() {
+            try {
+                setStatus("Loading Sui libraries...");
+                
+                // Import Sui libraries
+                const suiModule = await import("https://unpkg.com/@mysten/sui.js/dist/esm/index.js");
+                SuiClient = suiModule.SuiClient;
+                getFullnodeUrl = suiModule.getFullnodeUrl;
+                TransactionBlock = suiModule.TransactionBlock;
+                
+                client = new SuiClient({ url: getFullnodeUrl("mainnet") });
+                
+                setStatus("Widget ready - Click buttons to test!");
+                
+                // Test that the input works
+                setTimeout(() => {
+                    const input = document.getElementById("suiAmount");
+                    if (input) {
+                        input.value = "1";
+                        handleInputChange();
+                        setTimeout(() => {
+                            input.value = "";
+                            handleInputChange();
+                        }, 2000);
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error("Init error:", error);
+                setStatus("Error loading libraries: " + error.message);
+            }
+        }
+
+        // Start initialization when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initWidget);
+        } else {
+            initWidget();
+        }
+
+        // Fallback event listeners (in case inline onclick doesn't work)
+        window.addEventListener('load', function() {
+            try {
+                document.getElementById("connectWallet").addEventListener("click", handleConnectWallet);
+                document.getElementById("suiAmount").addEventListener("input", handleInputChange);
+                document.getElementById("buyBtn").addEventListener("click", handleBuyMEFC);
+                setStatus("Event listeners attached");
+            } catch (e) {
+                console.error("Event listener error:", e);
+            }
+        });
     </script>
 </body>
 </html>
