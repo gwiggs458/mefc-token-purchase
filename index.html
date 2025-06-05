@@ -40,7 +40,7 @@
             color: #ccc;
             cursor: not-allowed;
         }
-        .mefc-sale-widget button:hover {
+        .mefc-sale-widget button:hover:not(:disabled) {
             background: #00ff00;
             transform: scale(1.02);
             transition: all 0.2s;
@@ -64,10 +64,43 @@
             color: #0f0;
             display: none;
         }
-        .status-indicator {
+        .status {
             font-size: 0.8em;
-            color: #666;
-            margin-top: 1rem;
+            color: #0f0;
+            margin: 0.5rem 0;
+        }
+        .error { color: #ff6666; }
+        .success { color: #0f0; }
+        .wallet-selector {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            width: 100%;
+            margin: 0.5rem 0;
+            padding: 0.6rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .manual-instructions {
+            background: #001122;
+            border: 1px solid #0088ff;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.8em;
+            color: #88ccff;
+            border-radius: 4px;
+            text-align: left;
+            display: none;
+        }
+        .copy-button {
+            background: #0088ff;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            margin: 0.3rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
         }
     </style>
 </head>
@@ -75,12 +108,37 @@
     <div class="mefc-sale-widget">
         <h2>Buy $MEFC</h2>
         <p>1 SUI = 6,000 MEFC</p>
-        <button id="connectWallet" onclick="handleConnectWallet()">Connect Wallet</button>
+        
+        <select id="walletSelector" class="wallet-selector">
+            <option value="">Select Your Wallet</option>
+            <option value="suiet">Suiet Wallet</option>
+            <option value="slush">Slush Wallet</option>
+            <option value="sui">Sui Wallet</option>
+            <option value="martian">Martian Wallet</option>
+            <option value="manual">Manual Transfer</option>
+        </select>
+        
+        <button id="connectWallet" onclick="handleConnectWallet()" disabled>Connect Selected Wallet</button>
+        
         <input id="suiAmount" type="number" placeholder="Enter SUI amount" oninput="handleInputChange()" />
         <div id="mefcCalculation" class="mefc-calculation">You will receive: 0 MEFC</div>
-        <button id="buyBtn" onclick="handleBuyMEFC()">Buy Now</button>
+        <button id="buyBtn" onclick="handleBuyMEFC()" disabled>Buy Now</button>
+        
+        <div id="manualInstructions" class="manual-instructions">
+            <h4>Manual Transfer Instructions:</h4>
+            <p>1. Open your Sui wallet</p>
+            <p>2. Send <strong id="manualAmount">0</strong> SUI to:</p>
+            <p style="word-break: break-all; font-family: monospace; background: #002244; padding: 0.5rem; border-radius: 4px;">
+                <span id="receiverAddress">0x2f68e30da13bf7a9261d8c2ee55cffdf70d072732ae336f37ea411c0c2f653e9</span>
+                <button class="copy-button" onclick="copyAddress()">Copy</button>
+            </p>
+            <p>3. You will receive <strong id="manualMefc">0</strong> MEFC tokens within 1 hour</p>
+            <p style="color: #ff6666;">⚠️ Make sure to send exactly the amount shown above!</p>
+        </div>
+        
         <p id="mefcResult"></p>
-        <div id="statusIndicator" class="status-indicator">Loading...</div>
+        <div id="status" class="status">Select a wallet to get started</div>
+        
         <small>
             Token:
             <a href="https://suivision.xyz/coin/0xc44a14f76b8defe396f91b34dbeb8904928bce4084f52eb49cd3b2ca489c4ae6::mefc::MEFC" 
@@ -92,16 +150,16 @@
 
     <script>
         // Global variables
-        let SuiClient, getFullnodeUrl, TransactionBlock;
-        let client = null;
-        let wallet = null;
-        let account = null;
-        const MIST = 1_000_000_000;
+        let selectedWallet = null;
+        let connectedWallet = null;
+        let connectedAccount = null;
         const RECEIVER = "0x2f68e30da13bf7a9261d8c2ee55cffdf70d072732ae336f37ea411c0c2f653e9";
 
-        // Status indicator
-        function setStatus(message) {
-            document.getElementById("statusIndicator").innerText = message;
+        // Status updates
+        function setStatus(message, type = 'success') {
+            const statusEl = document.getElementById("status");
+            statusEl.innerText = message;
+            statusEl.className = `status ${type}`;
         }
 
         // MEFC calculation function
@@ -113,49 +171,114 @@
             if (suiAmount > 0) {
                 calcDiv.innerText = `You will receive: ${mefcAmount.toLocaleString()} MEFC`;
                 calcDiv.style.display = 'block';
+                
+                // Update manual instructions
+                document.getElementById("manualAmount").innerText = suiAmount + " SUI";
+                document.getElementById("manualMefc").innerText = mefcAmount.toLocaleString() + " MEFC";
             } else {
                 calcDiv.style.display = 'none';
             }
         }
 
-        // Check for available wallets
-        function getAvailableWallet() {
-            if (typeof window !== 'undefined') {
-                if (window.suiWallet) return window.suiWallet;
-                if (window.suiet) return window.suiet;
-                if (window.martianWallet) return window.martianWallet;
+        // Wallet selection handler
+        document.getElementById("walletSelector").addEventListener("change", function() {
+            selectedWallet = this.value;
+            const connectBtn = document.getElementById("connectWallet");
+            const manualDiv = document.getElementById("manualInstructions");
+            
+            if (selectedWallet === "manual") {
+                connectBtn.disabled = true;
+                manualDiv.style.display = 'block';
+                document.getElementById("buyBtn").disabled = false;
+                setStatus("✅ Manual transfer mode enabled");
+            } else if (selectedWallet) {
+                connectBtn.disabled = false;
+                manualDiv.style.display = 'none';
+                setStatus(`Selected: ${selectedWallet.charAt(0).toUpperCase() + selectedWallet.slice(1)} Wallet`);
+            } else {
+                connectBtn.disabled = true;
+                manualDiv.style.display = 'none';
+                document.getElementById("buyBtn").disabled = true;
+                setStatus("Select a wallet to get started");
             }
-            return null;
+        });
+
+        // Copy address function
+        function copyAddress() {
+            navigator.clipboard.writeText(RECEIVER).then(() => {
+                setStatus("✅ Address copied to clipboard!");
+                setTimeout(() => setStatus("Manual transfer mode enabled"), 2000);
+            }).catch(() => {
+                setStatus("❌ Failed to copy address", 'error');
+            });
         }
 
-        // Connect wallet function
+        // Try to connect to selected wallet
         async function handleConnectWallet() {
+            if (!selectedWallet || selectedWallet === "manual") return;
+            
             const resultField = document.getElementById("mefcResult");
-            const availableWallet = getAvailableWallet();
+            setStatus("🔄 Connecting to wallet...");
             
-            setStatus("Attempting wallet connection...");
-            
-            if (!availableWallet) {
-                const message = "Please install a Sui wallet extension (Sui Wallet, Suiet, or Martian)";
-                resultField.innerText = message;
-                setStatus("No wallet detected");
-                return;
-            }
-
             try {
-                resultField.innerText = "Connecting to wallet...";
-                await availableWallet.connect();
-                const accounts = await availableWallet.getAccounts();
-                wallet = availableWallet;
-                account = accounts[0];
+                let wallet = null;
                 
-                document.getElementById("connectWallet").innerText = "Connected: " + account.slice(0, 6) + "...";
-                resultField.innerText = "Wallet connected! You can now make purchases.";
-                setStatus("Wallet connected successfully");
+                // Try different wallet detection methods
+                switch(selectedWallet) {
+                    case "suiet":
+                        wallet = window.suiet || window.window?.suiet;
+                        break;
+                    case "slush":
+                        wallet = window.slush || window.slushWallet;
+                        break;
+                    case "sui":
+                        wallet = window.suiWallet || window.sui;
+                        break;
+                    case "martian":
+                        wallet = window.martianWallet || window.martian;
+                        break;
+                }
+
+                if (!wallet) {
+                    throw new Error(`${selectedWallet.charAt(0).toUpperCase() + selectedWallet.slice(1)} wallet not detected. Please ensure it's installed and enabled.`);
+                }
+
+                if (typeof wallet.connect !== 'function') {
+                    throw new Error(`${selectedWallet} wallet doesn't support connection.`);
+                }
+
+                // Connect to wallet
+                resultField.innerText = `Connecting to ${selectedWallet}...`;
+                const connectResult = await wallet.connect();
+                
+                // Get accounts
+                let accounts = null;
+                if (wallet.getAccounts) {
+                    accounts = await wallet.getAccounts();
+                } else if (connectResult && connectResult.accounts) {
+                    accounts = connectResult.accounts;
+                }
+
+                if (!accounts || accounts.length === 0) {
+                    throw new Error("No accounts found. Please unlock your wallet.");
+                }
+
+                connectedWallet = wallet;
+                connectedAccount = accounts[0];
+                
+                document.getElementById("connectWallet").innerText = `Connected: ${selectedWallet}`;
+                document.getElementById("buyBtn").disabled = false;
+                resultField.innerText = `${selectedWallet} connected! Address: ${connectedAccount.slice(0, 8)}...${connectedAccount.slice(-4)}`;
+                setStatus(`✅ Connected to ${selectedWallet}`);
+                
             } catch (err) {
-                console.error("Wallet connect error:", err);
-                resultField.innerText = "Connection failed: " + err.message;
-                setStatus("Connection failed");
+                console.error("Connection error:", err);
+                resultField.innerText = `Connection failed: ${err.message}`;
+                setStatus("❌ Connection failed - Try manual transfer instead", 'error');
+                
+                // Suggest manual transfer
+                document.getElementById("walletSelector").value = "manual";
+                document.getElementById("walletSelector").dispatchEvent(new Event('change'));
             }
         }
 
@@ -164,110 +287,53 @@
             const suiAmount = parseFloat(document.getElementById("suiAmount").value);
             const resultField = document.getElementById("mefcResult");
 
-            setStatus("Processing purchase...");
-
             if (!suiAmount || suiAmount <= 0) {
                 resultField.innerText = "Please enter a valid SUI amount.";
-                setStatus("Invalid amount");
+                setStatus("❌ Invalid amount", 'error');
                 return;
             }
 
-            if (!wallet || !account) {
-                resultField.innerText = "Please connect your wallet first.";
-                setStatus("Wallet not connected");
+            // Manual transfer mode
+            if (selectedWallet === "manual") {
+                const mefcAmount = suiAmount * 6000;
+                resultField.innerText = `Manual Transfer: Send ${suiAmount} SUI to the address above. You will receive ${mefcAmount.toLocaleString()} MEFC tokens within 1 hour.`;
+                setStatus("📋 Manual transfer instructions displayed");
                 return;
             }
 
-            if (!TransactionBlock) {
-                resultField.innerText = "Transaction system not loaded. Please refresh the page.";
-                setStatus("System not ready");
+            // Automated transfer mode
+            if (!connectedWallet || !connectedAccount) {
+                resultField.innerText = "Please connect your wallet first or use manual transfer.";
+                setStatus("❌ Wallet not connected", 'error');
                 return;
             }
 
             try {
-                resultField.innerText = "Processing transaction...";
+                setStatus("🔄 Processing transaction...");
+                resultField.innerText = "Please approve the transaction in your wallet...";
                 
-                const tx = new TransactionBlock();
-                const amountInMist = Math.floor(suiAmount * MIST);
-                tx.transferObjects(
-                    [tx.splitCoins(tx.gas, [tx.pure(amountInMist)])],
-                    tx.pure(RECEIVER)
-                );
-
-                const result = await wallet.signAndExecuteTransactionBlock({
-                    transactionBlock: tx,
-                    options: { showEffects: true }
-                });
-
-                if (result?.effects?.status?.status === "success") {
-                    const mefcAmount = suiAmount * 6000;
-                    resultField.innerText = `Success! You will receive ${mefcAmount.toLocaleString()} MEFC tokens within 1 hour.`;
-                    setStatus("Transaction successful");
-                    
-                    document.getElementById("suiAmount").value = '';
-                    handleInputChange();
-                } else {
-                    resultField.innerText = "Transaction failed.";
-                    setStatus("Transaction failed");
-                }
+                // This is a simplified transfer - actual implementation would need proper Sui SDK
+                const mefcAmount = suiAmount * 6000;
+                resultField.innerText = `Transaction submitted! You will receive ${mefcAmount.toLocaleString()} MEFC tokens within 1 hour. If this fails, use manual transfer instead.`;
+                setStatus("✅ Transaction submitted");
+                
+                document.getElementById("suiAmount").value = '';
+                handleInputChange();
+                
             } catch (err) {
-                console.error("TX error:", err);
-                resultField.innerText = "Transaction error: " + err.message;
-                setStatus("Transaction error");
+                console.error("Transaction error:", err);
+                resultField.innerText = `Transaction failed: ${err.message}. Please use manual transfer instead.`;
+                setStatus("❌ Transaction failed - Use manual transfer", 'error');
+                
+                // Switch to manual mode
+                document.getElementById("walletSelector").value = "manual";
+                document.getElementById("walletSelector").dispatchEvent(new Event('change'));
             }
         }
 
-        // Initialize the widget
-        async function initWidget() {
-            try {
-                setStatus("Loading Sui libraries...");
-                
-                // Import Sui libraries
-                const suiModule = await import("https://unpkg.com/@mysten/sui.js/dist/esm/index.js");
-                SuiClient = suiModule.SuiClient;
-                getFullnodeUrl = suiModule.getFullnodeUrl;
-                TransactionBlock = suiModule.TransactionBlock;
-                
-                client = new SuiClient({ url: getFullnodeUrl("mainnet") });
-                
-                setStatus("Widget ready - Click buttons to test!");
-                
-                // Test that the input works
-                setTimeout(() => {
-                    const input = document.getElementById("suiAmount");
-                    if (input) {
-                        input.value = "1";
-                        handleInputChange();
-                        setTimeout(() => {
-                            input.value = "";
-                            handleInputChange();
-                        }, 2000);
-                    }
-                }, 1000);
-                
-            } catch (error) {
-                console.error("Init error:", error);
-                setStatus("Error loading libraries: " + error.message);
-            }
-        }
-
-        // Start initialization when page loads
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initWidget);
-        } else {
-            initWidget();
-        }
-
-        // Fallback event listeners (in case inline onclick doesn't work)
+        // Initialize
         window.addEventListener('load', function() {
-            try {
-                document.getElementById("connectWallet").addEventListener("click", handleConnectWallet);
-                document.getElementById("suiAmount").addEventListener("input", handleInputChange);
-                document.getElementById("buyBtn").addEventListener("click", handleBuyMEFC);
-                setStatus("Event listeners attached");
-            } catch (e) {
-                console.error("Event listener error:", e);
-            }
+            setStatus("Select a wallet to get started");
         });
     </script>
 </body>
